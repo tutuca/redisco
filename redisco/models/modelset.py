@@ -1,11 +1,11 @@
 """
 Handles the queries.
 """
-from attributes import IntegerField, DateTimeField
+from .attributes import IntegerField, DateTimeField
 import redisco
 from redisco.containers import SortedSet, Set, List, NonPersistentList
-from exceptions import AttributeNotIndexed
-from attributes import ZINDEXABLE
+from .exceptions import AttributeNotIndexed
+from .attributes import ZINDEXABLE
 
 # Model Set
 class ModelSet(Set):
@@ -29,7 +29,7 @@ class ModelSet(Set):
         Will look in _set to get the id and simply return the instance of the model.
         """
         if isinstance(index, slice):
-            return map(lambda id: self._get_item_with_id(id), self._set[index])
+            return [o for o in [klass.objects.get_by_id(v) for v in val] if o is not None]
         else:
             id = self._set[index]
             if id:
@@ -42,7 +42,7 @@ class ModelSet(Set):
             m = self._set[:30]
         else:
             m = self._set
-        s = map(lambda id: self._get_item_with_id(id), m)
+        s = [self._get_item_with_id(id) for id in m]
         return "%s" % s
 
     def __iter__(self):
@@ -255,7 +255,7 @@ class ModelSet(Set):
         [...]
         """
         opts = {}
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             if k in self.model_class._indices:
                 opts[k] = v
         o = self.filter(**opts).first()
@@ -307,7 +307,7 @@ class ModelSet(Set):
         :return: the new Set
         """
         indices = []
-        for k, v in self._filters.iteritems():
+        for k, v in self._filters.items():
             index = self._build_key_from_filter_item(k, v)
             if k not in self.model_class._indices:
                 raise AttributeNotIndexed(
@@ -331,7 +331,7 @@ class ModelSet(Set):
         :return: the new Set
         """
         indices = []
-        for k, v in self._exclusions.iteritems():
+        for k, v in self._exclusions.items():
             index = self._build_key_from_filter_item(k, v)
             if k not in self.model_class._indices:
                 raise AttributeNotIndexed(

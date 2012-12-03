@@ -1,13 +1,14 @@
 import time
+import redisco
+import collections
 from datetime import datetime, date
 from dateutil.tz import tzutc
-import redisco
 from redisco.containers import Set, List, SortedSet, NonPersistentList
-from attributes import *
-from key import Key
-from managers import ManagerDescriptor, Manager
-from exceptions import FieldValidationError, MissingID, BadKeyError
-from attributes import Counter
+from .attributes import *
+from .key import Key
+from .managers import ManagerDescriptor, Manager
+from .exceptions import FieldValidationError, MissingID, BadKeyError
+from .attributes import Counter
 
 __all__ = ['Model', 'from_key']
 
@@ -29,10 +30,10 @@ def _initialize_attributes(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelBase):
             continue
-        for k, v in parent._attributes.iteritems():
+        for k, v in parent._attributes.items():
             model_class._attributes[k] = v
 
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         if isinstance(v, Attribute):
             model_class._attributes[k] = v
             v.name = v.name or k
@@ -66,10 +67,10 @@ def _initialize_lists(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelBase):
             continue
-        for k, v in parent._lists.iteritems():
+        for k, v in parent._lists.items():
             model_class._lists[k] = v
 
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         if isinstance(v, ListField):
             model_class._lists[k] = v
             v.name = v.name or k
@@ -85,7 +86,7 @@ def _initialize_references(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelBase):
             continue
-        for k, v in parent._references.iteritems():
+        for k, v in parent._references.items():
             model_class._references[k] = v
             # We skip updating the attributes since this is done
             # already at the parent construction and then copied back
@@ -94,7 +95,7 @@ def _initialize_references(model_class, name, bases, attrs):
             if refd:
                 deferred.append(refd)
 
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         if isinstance(v, ReferenceField):
             model_class._references[k] = v
             v.name = v.name or k
@@ -116,14 +117,14 @@ def _initialize_indices(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelBase):
             continue
-        for k, v in parent._attributes.iteritems():
+        for k, v in parent._attributes.items():
             if v.indexed:
                 model_class._indices.append(k)
-        for k, v in parent._lists.iteritems():
+        for k, v in parent._lists.items():
             if v.indexed:
                 model_class._indices.append(k)
 
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         if isinstance(v, (Attribute, ListField)) and v.indexed:
             model_class._indices.append(k)
     if model_class._meta['indices']:
@@ -142,7 +143,7 @@ def _initialize_counters(model_class, name, bases, attrs):
         for c in parent._counters:
             model_class._counters.append(c)
 
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         if isinstance(v, Counter):
             # When subclassing, we want to override the attributes
             if k in model_class._counters:
@@ -218,8 +219,7 @@ class ModelBase(type):
                 _initialize_referenced(model_class, att)
 
 
-class Model(object):
-    __metaclass__ = ModelBase
+class Model(object, metaclass=ModelBase):
 
     def __init__(self, **kwargs):
         self.update_attributes(**kwargs)
@@ -252,7 +252,7 @@ class Model(object):
         for field in self.fields:
             try:
                 field.validate(self)
-            except FieldValidationError, e:
+            except FieldValidationError as e:
                 self._errors.extend(e.errors)
         self.validate()
         return not bool(self._errors)
@@ -292,8 +292,9 @@ class Model(object):
         >>> f.name
         'Tesla'
         """
-        attrs = self.attributes.values() + self.lists.values() \
-                + self.references.values()
+        
+        attrs = self.attributes.values() and self.lists.values() and \
+             self.references.values()
         for att in attrs:
             if att.name in kwargs:
                 att.__set__(self, kwargs[att.name])
@@ -502,8 +503,8 @@ class Model(object):
     @property
     def fields(self):
         """Returns the list of field names of the model."""
-        return (self.attributes.values() + self.lists.values()
-                + self.references.values())
+        return (self.attributes.values() and self.lists.values()
+                and self.references.values())
 
     @property
     def counters(self):
@@ -539,7 +540,7 @@ class Model(object):
         self._update_indices(pipeline)
         h = {}
         # attributes
-        for k, v in self.attributes.iteritems():
+        for k, v in self.attributes.items():
             if isinstance(v, DateTimeField):
                 if v.auto_now:
                     setattr(self, k, datetime.now(tz=tzutc()))
@@ -557,19 +558,19 @@ class Model(object):
         for index in self.indices:
             if index not in self.lists and index not in self.attributes:
                 v = getattr(self, index)
-                if callable(v):
+                if isinstance(v, collections.Callable):
                     v = v()
                 if v:
                     try:
-                        h[index] = unicode(v)
+                        h[index] = v
                     except UnicodeError:
-                        h[index] = unicode(v.decode('utf-8'))
+                        h[index] = v
         pipeline.delete(self.key())
         if h:
             pipeline.hmset(self.key(), h)
 
         # lists
-        for k, v in self.lists.iteritems():
+        for k, v in self.lists.items():
             l = List(self.key()[k], pipeline=pipeline)
             l.clear()
             values = getattr(self, k)
@@ -656,7 +657,7 @@ class Model(object):
         """
         if value is None:
             value = getattr(self, att)
-            if callable(value):
+            if isinstance(value,collections.Callable):
                 value = value()
         if value is None:
             return None
@@ -733,7 +734,7 @@ def from_key(key):
     try:
         _, id = key.split(':', 2)
         id = int(id)
-    except ValueError, TypeError:
+    except (ValueError, TypeError):
         raise BadKeyError
     return model.objects.get_by_id(id)
 

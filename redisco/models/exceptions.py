@@ -1,7 +1,7 @@
 ##########
 # ERRORS #
 ##########
-class Error(StandardError):
+class Error(Exception):
     pass
 
 class ValidationError(Error):
