@@ -345,7 +345,7 @@ class TypedListTestCase(unittest.TestCase):
         self.client.flushdb()
 
     def test_basic_types(self):
-        alpha = cont.TypedList('alpha', unicode, type_args=('UTF-8',))
+        alpha = cont.TypedList('alpha', str, type_args=('UTF-8',))
         monies = u'\u0024\u00a2\u00a3\u00a5'
         alpha.append(monies)
         val = alpha[-1]

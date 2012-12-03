@@ -63,7 +63,7 @@ class ModelTestCase(RediscoTestCase):
 
         p = Person.objects.filter(first_name=u"Niña").first()
         self.assert_(p)
-        self.assert_(isinstance(p.full_name(), unicode))
+        self.assert_(isinstance(p.full_name(), str))
         self.assertEqual(u"Niña Jose", p.full_name())
 
     def test_repr(self):

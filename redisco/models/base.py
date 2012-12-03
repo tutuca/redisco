@@ -50,7 +50,7 @@ def _initialize_referenced(model_class, attribute):
                 .filter(**{attribute.attname: self.id}))
 
     klass = attribute._target_type
-    if isinstance(klass, basestring):
+    if isinstance(klass, str):
         return (klass, model_class, attribute)
     else:
         related_name = (attribute.related_name or
