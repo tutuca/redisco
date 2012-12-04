@@ -354,7 +354,7 @@ class ModelSet(Set):
 
         """
 
-        k, v = self._zfilters[0].items()[0]
+        k, v = next(iter(self._zfilters[0].items()))
         try:
             att, op = k.split('__')
         except ValueError:

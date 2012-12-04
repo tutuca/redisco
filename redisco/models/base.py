@@ -293,7 +293,7 @@ class Model(object, metaclass=ModelBase):
         'Tesla'
         """
         
-        attrs = self.attributes.values() and self.lists.values() and \
+        attrs = self.attributes.values() or self.lists.values() or \
              self.references.values()
         for att in attrs:
             if att.name in kwargs:
@@ -503,7 +503,7 @@ class Model(object, metaclass=ModelBase):
     @property
     def fields(self):
         """Returns the list of field names of the model."""
-        return (self.attributes.values() and self.lists.values()
+        return (self.attributes.values() or self.lists.values()
                 and self.references.values())
 
     @property
